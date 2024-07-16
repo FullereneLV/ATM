@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace HW3_ATM
@@ -9,28 +8,31 @@ namespace HW3_ATM
     class Program
     {
         public static List<Option> options;
+        static Dictionary<string, string> _credentials = new Dictionary<string, string>();
+        static Dictionary<string, double> _balance = new Dictionary<string, double>();
+
         static void Main(string[] args)
         {
+           
+
             options = new List<Option>
             {
                 new Option("Sign in", () => SignInFileds()),
-                new Option("Log in", () =>  WriteTemporaryMessage("How Are You")),
+                new Option("Log in", () =>  LogInFileds()),
                 new Option("Leave", () => Environment.Exit(0)),
             };
 
-            // Set the default index of the selected item to be the first
+            
+
             int index = 0;
 
-            // Write the menu out
             WriteMenu(options, options[index]);
 
-            // Store key info in here
             ConsoleKeyInfo keyinfo;
             do
             {
                 keyinfo = Console.ReadKey();
 
-                // Handle each key input (down arrow will write the menu again with a different selected item)
                 if (keyinfo.Key == ConsoleKey.DownArrow)
                 {
                     if (index + 1 < options.Count)
@@ -47,7 +49,7 @@ namespace HW3_ATM
                         WriteMenu(options, options[index]);
                     }
                 }
-                // Handle different action for the option
+               
                 if (keyinfo.Key == ConsoleKey.Enter)
                 {
                     options[index].Selected.Invoke();
@@ -57,49 +59,179 @@ namespace HW3_ATM
             while (keyinfo.Key != ConsoleKey.X);
 
             Console.ReadKey();
-
-        }
-        // Default action of all the options. You can create more methods
-        static void WriteTemporaryMessage(string message)
-        {
-            Console.Clear();
-            Console.WriteLine(message);
-            Thread.Sleep(3000);
-            WriteMenu(options, options.First());
         }
 
         static void SignInFileds()
         {
+            var email = String.Empty;
+            var password = String.Empty;
+
             Console.Clear();
-            Console.WriteLine("Email");
-            var email = Console.ReadLine();
-            if (!IsValidEmail(email))
+            Console.WriteLine("Create account:");
+            Console.WriteLine("Email:");
+             email = Console.ReadLine();
+
+            if (!IsEmailExist(email))
             {
-                Console.WriteLine("Email is not valid.");
+                Console.WriteLine("Password:");
+                password = Console.ReadLine();
+                Console.WriteLine("Confirm Password:");
+                var confirmPassword = Console.ReadLine();
+                if (password != confirmPassword)
+                {
+                    Console.WriteLine("Password isn't the same.");
+                }
+                _credentials.Add(email, password);
+                _balance.Add(email, 0.0);
+                Console.WriteLine("Successfully created an account.");
+                PauseBeforeContinuing();
+                WriteMenu(options, options.First());
             }
-            
-            Console.WriteLine("Password");
-            var password = Console.ReadLine();
-            Console.WriteLine("Confirm Password");
-            var confirmPassword = Console.ReadLine();
-            if(password != confirmPassword)
+            else
             {
-                Console.WriteLine("Password isn't the same");
+                Console.WriteLine("Your email exist.");
+                PauseBeforeContinuing();
+                WriteMenu(options, options.First());
             }
-            Thread.Sleep(1000);
-            WriteMenu(options, options.First());
         }
 
-        static bool IsValidEmail(string email)
+
+        static bool IsEmailExist(string email)
         {
-            string pattern = @"^(?!\.)(""([^""\r\\]|\\[""\r\\])*""|" + @"([-a-z0-9!#$%&'*+/=?^_`{|}~]|(?<!\.)\.)*)(?<!\.)" + @"@[a-z0-9][\w\.-]*[a-z0-9]\.[a-z][a-z\.]*[a-z]$";
-            var regex = new Regex(pattern, RegexOptions.IgnoreCase);
-            return regex.IsMatch(email);
+            return _credentials.ContainsKey(email);
+        }
+
+        static bool IsValidCredentials(string email, string password)
+        {
+            return _credentials[email].Contains(password);
+        }
+
+        static void LogInFileds()
+        {
+            var email = String.Empty;
+            bool res = false;
+
+            while (!res) 
+            {
+                Console.Clear();
+                Console.WriteLine("Email:");
+                email = Console.ReadLine();
+
+                if (IsEmailExist(email))
+                {
+                    Console.WriteLine("Password:");
+                    var password = Console.ReadLine();
+                    if (!IsValidCredentials(email, password))
+                    {
+
+                        Console.WriteLine("Email or password is wrong. Please try again.");
+                        PauseBeforeContinuing();
+                    }
+                    else
+                    {
+                        res = SubMenu(email);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Please Sign In");
+                    PauseBeforeContinuing();
+                    WriteMenu(options, options.First());
+                }
+                res = true;
+            }
+        }
+
+        static void CheckBalance(string email)
+        {
+            bool showBalance = false;
+            while (!showBalance)
+            {
+                Console.Clear();
+                Console.WriteLine("Balance:");
+                Console.WriteLine(_balance[email]);
+                PauseBeforeContinuing();
+                showBalance = SubMenu(email);
+            }
+        }
+
+        static void Deposite(string email)
+        {
+            bool showDeposit = false;
+           
+            while (!showDeposit)
+            {
+                Console.Clear();
+                Console.WriteLine("Deposite:");
+                var money = Convert.ToDouble(Console.ReadLine());
+                _balance[email] = _balance[email] + money;
+                Console.WriteLine($"Deposite: {_balance[email]}");
+                showDeposit = SubMenu(email);
+            }
+        }
+
+        static void Withdraw(string email)
+        {
+            bool show = false;
+            while (!show)
+            {
+                Console.Clear();
+                Console.WriteLine("Withdraw:");
+                var money = Convert.ToDouble(Console.ReadLine());
+                _balance[email] = _balance[email] - money;
+                Console.WriteLine($"Deposite: {_balance[email]}");
+                show = SubMenu(email);
+            }
+        }
+
+        static void LogOff()
+        {
+             WriteMenu(options, options.First()); 
+        }
+
+        static bool SubMenu(string email = "")
+        {
+            Console.Clear();
+            Console.WriteLine("Choose an option:");
+            Console.WriteLine("1) Check Balance");
+            Console.WriteLine("2) Deposit");
+            Console.WriteLine("3) Withdraw");
+            Console.WriteLine("4) Log Out");
+            Console.WriteLine("Select an option: ");
+
+            switch (Console.ReadLine())
+            {
+                case "1":
+                    CheckBalance(email);
+                    PauseBeforeContinuing();
+                    return true;
+                case "2":
+                    Deposite(email);
+                    PauseBeforeContinuing();
+                    return true;
+                case "3":
+                    Withdraw(email);
+                    PauseBeforeContinuing();
+                    return true;
+                case "4":
+                    LogOff();
+                    PauseBeforeContinuing();
+                    return false;
+                default:
+                    return true;
+            }
+        }
+
+        static void PauseBeforeContinuing()
+        {
+            Console.WriteLine("Press any key to continue.");
+            Console.ReadKey();
         }
 
         static void WriteMenu(List<Option> options, Option selectedOption)
         {
             Console.Clear();
+            Console.WriteLine("Welcom to ATM:");
 
             foreach (Option option in options)
             {
@@ -128,39 +260,6 @@ namespace HW3_ATM
             Selected = selected;
         }
     }
+}
 
-    /*Console.WriteLine("Please enter email");
-    var email = Console.ReadLine();
-
-    Console.WriteLine("Please enter password");
-    var password = Console.ReadLine();
-    */
-   /* Console.WriteLine("Please choose option: Log in, Sign in or Leave");
-            var option = Console.ReadLine();
-           
-            if (option == "Log in" || option == "login" || option == "log")
-            {
-                Console.WriteLine("Please enter email");
-                var email1 = Console.ReadLine();
-
-                Console.WriteLine("Please enter password");
-                var password1 = Console.ReadLine();
-            }
-            //else if (option == "Sign in" || option == "signin" || option == "sing")
-            //{
-            //    Console.WriteLine("Please enter email");
-            //    var email2 = Console.ReadLine();
-
-            //    Console.WriteLine("Please enter password");
-            //    var password2 = Console.ReadLine();
-
-            //    Console.WriteLine("Please enter the same password");
-            //    var password21 = Console.ReadLine();
-            //}
-            else if (option == "leave" || option == "Leave")
-            {
-                Environment.Exit(1);
-            }*/
-        }
-    
 
